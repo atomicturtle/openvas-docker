@@ -1,46 +1,113 @@
-**Openvas Docker container**
+# Greenbone Vulnerability Management (GVM) Docker Container
 
-This container is based on Centos 7 for FIPS-140-2 compliance. It is a self contained Openvas Scanner with web console on port 443.  
+Self-contained, enterprise-grade **Greenbone Vulnerability Management (GVM)** container rebased on **Rocky Linux 10**.
 
+Maintained and packaged by **Atomicorp, Inc.**
 
-**Launch**
+## Features
+- **Modern Architecture:** GVM 26.43, OpenVAS Scanner 23.52, Valkey 8 (key-value store), PostgreSQL 16, Mosquitto 2 (MQTT broker), and Greenbone Security Assistant (GSA React Web UI).
+- **Turnkey Setup:** Includes automated database initialization, certificate generation, Valkey/Mosquitto coordination, and administrative user bootstrapping.
+- **Built-in CLI Automation:** Includes `gvm-tools` (26.1.2) and `python3-gvm` (27.10.1) for automated command-line scans and GMP scripting.
+- **FIPS & Enterprise Ready:** Based on Rocky Linux 10 with distribution security standards.
 
-	docker run -d -p 443:443 --name openvas atomicorp/openvas
+---
 
+## Quick Start
 
-	https://<IP>/
-	Default login / password: admin / admin
+### 1. Launch Container
+```bash
+docker run -d \
+  --name openvas \
+  -p 443:443 \
+  -p 9392:9392 \
+  atomicorp/openvas
+```
 
-**Launch with a Volume**
+Access the web interface at:
+- **URL:** `https://<IP>/` (or `https://<IP>:9392/`)
+- **Default Username:** `admin`
+- **Default Password:** `admin`
 
-	docker volume create openvas
+---
 
-	docker run -d -p 443:443 -v openvas:/var/lib/openvas/mgr --name openvas atomicorp/openvas
+## Persistent Storage (Volumes)
 
-**Set Admin Password**
+For production deployments, persist vulnerability feeds, PostgreSQL databases, and scan history across container restarts and upgrades:
 
-	docker run -d -p 443:443 -e OV_PASSWORD=iliketurtles --name openvas atomicorp/openvas
+```bash
+docker volume create gvm_data
+docker volume create gvm_plugins
+docker volume create gvm_db
 
-**Update NVT data**
+docker run -d \
+  --name openvas \
+  -p 443:443 \
+  -v gvm_data:/var/lib/gvm \
+  -v gvm_plugins:/var/lib/openvas \
+  -v gvm_db:/var/lib/pgsql \
+  atomicorp/openvas
+```
 
-	Note: This process may take take some time. 
+---
 
-	docker run -d -p 443:443 -e OV_UPDATE=yes --name openvas atomicorp/openvas
+## Configuration Options
 
+Configure container behavior via environment variables:
 
-**Attach to running**
+| Variable | Default | Description |
+|---|---|---|
+| `OV_PASSWORD` | `admin` | Custom administrative password for the `admin` user account. |
+| `OV_UPDATE` | `no` | Set to `yes` to perform a full feed sync (`greenbone-feed-sync`) on container start. |
+| `GSAD_PORT` | `443` | Port for the HTTPS web interface (defaults to `443`, alternative: `9392`). |
 
-	docker exec -it openvas bash
+### Examples
 
+#### Set Custom Admin Password
+```bash
+docker run -d \
+  --name openvas \
+  -p 443:443 \
+  -e OV_PASSWORD=MySecurePassword123! \
+  atomicorp/openvas
+```
 
-**Thanks**
+#### Sync Feeds on Startup
+```bash
+docker run -d \
+  --name openvas \
+  -p 443:443 \
+  -e OV_UPDATE=yes \
+  atomicorp/openvas
+```
 
-	Michael Meyer @Greenbone
+---
 
-	Jan-Oliver Wagner @Greenbone
+## Command Line Automation (`gvm-cli`)
 
-	Everyone at Greenbone that made this project possible
+Attach to the running container or execute scans directly:
 
-	The Arachni Project 
+```bash
+# Open interactive shell
+docker exec -it openvas bash
 
-	Openvas Docker creators used as a reference: Mike Splain, William Collani, Serge Katzmann, and Daniel Popescu
+# Run GMP query via local socket
+docker exec -it openvas runuser -u gvm -- \
+  gvm-cli socket --gmp-username admin --gmp-password admin --xml "<get_version/>"
+```
+
+---
+
+## Graceful Shutdown
+
+The container handles `SIGTERM` and `SIGINT` signals, cleanly shutting down GSAD, GVMD, OSPd-openvas, Mosquitto, Valkey, and PostgreSQL:
+
+```bash
+docker stop openvas
+```
+
+---
+
+## License & Credits
+
+Copyright Atomicorp, Inc. Licensed under the AGPLv3.  
+Special thanks to Greenbone AG and the Greenbone Community.
