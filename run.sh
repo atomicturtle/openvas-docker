@@ -16,6 +16,13 @@ OV_PASSWORD="${OV_PASSWORD:-admin}"
 OV_UPDATE="${OV_UPDATE:-no}"
 GSAD_PORT="${GSAD_PORT:-443}"
 FEED_OWNER_UUID="78eceaec-3385-11ea-b237-28d24461215b"
+
+# Normalize proxy settings if provided
+if [ -n "${RSYNC_PROXY:-}" ]; then
+    RSYNC_PROXY="${RSYNC_PROXY#http://}"
+    RSYNC_PROXY="${RSYNC_PROXY#https://}"
+    export RSYNC_PROXY
+fi
 RUN_DIR="/run"
 VALKEY_SOCK="/run/valkey/valkey.sock"
 OSPD_SOCK="/run/ospd/ospd-openvas.sock"

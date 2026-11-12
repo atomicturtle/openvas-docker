@@ -80,6 +80,20 @@ docker run -d \
   atomicorp/openvas
 ```
 
+#### Proxy Configuration
+If running behind a proxy, pass standard proxy environment variables. `run.sh` automatically normalizes `RSYNC_PROXY` if an `http://` or `https://` prefix is included:
+
+```bash
+docker run -d \
+  --name openvas \
+  -p 443:443 \
+  -e http_proxy=http://proxy.example.com:3128 \
+  -e https_proxy=http://proxy.example.com:3128 \
+  -e RSYNC_PROXY=proxy.example.com:3128 \
+  -e OV_UPDATE=yes \
+  atomicorp/openvas
+```
+
 ---
 
 ## Command Line Automation (`gvm-cli`)
